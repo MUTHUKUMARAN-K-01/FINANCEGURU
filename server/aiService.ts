@@ -1,20 +1,14 @@
-import OpenAI from 'openai';
 import * as dotenv from 'dotenv';
 import axios from 'axios';
 
 // Load environment variables
 dotenv.config();
 
-// Initialize OpenAI client
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
 // Deepseek API endpoint
 const DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions';
 
 // AI model configuration
-export type AIModel = 'openai' | 'deepseek' | 'huggingface' | 'local';
+export type AIModel = 'deepseek' | 'huggingface' | 'local';
 
 // System prompt for financial advisor role
 const SYSTEM_PROMPT = `
@@ -37,7 +31,7 @@ acknowledge your limitations and suggest consulting a certified financial profes
  * Generate a response to a user's finance question using the specified AI model
  * @param userMessage The user's finance-related question or message
  * @param chatHistory Previous messages for context (optional)
- * @param model The AI model to use (local, openai, deepseek, or huggingface)
+ * @param model The AI model to use (local, deepseek, or huggingface)
  * @returns AI-generated response
  */
 export async function generateFinanceResponse(
@@ -58,8 +52,6 @@ export async function generateFinanceResponse(
       return await generateDeepseekResponse(userMessage, chatHistory);
     } else if (model === 'huggingface') {
       return await generateHuggingFaceResponse(userMessage, chatHistory);
-    } else if (model === 'openai') {
-      return await generateOpenAIResponse(userMessage, chatHistory);
     } else {
       // Default to local response generator
       return generateLocalFinanceResponse(userMessage);
@@ -71,57 +63,6 @@ export async function generateFinanceResponse(
     console.log("Falling back to local response generator");
     return generateLocalFinanceResponse(userMessage);
   }
-}
-
-/**
- * Generate a response using OpenAI
- * @param userMessage The user's finance-related question
- * @param chatHistory Previous messages for context
- * @returns AI-generated response
- */
-async function generateOpenAIResponse(userMessage: string, chatHistory: string[] = []): Promise<string> {
-  // Default fallback response if API call fails
-  let response = "I'm having trouble connecting to my knowledge base right now. Please try again in a moment.";
-  
-  if (!process.env.OPENAI_API_KEY) {
-    return "API key not configured. Please set the OPENAI_API_KEY environment variable.";
-  }
-
-  // Format chat history for the API
-  type MessageRole = 'system' | 'user' | 'assistant';
-  const messages: Array<{role: MessageRole, content: string}> = [
-    { role: 'system', content: SYSTEM_PROMPT },
-  ];
-  
-  // Add chat history if available
-  if (chatHistory.length > 0) {
-    for (let i = 0; i < chatHistory.length; i += 2) {
-      if (i < chatHistory.length) {
-        messages.push({ role: 'user', content: chatHistory[i] });
-      }
-      if (i + 1 < chatHistory.length) {
-        messages.push({ role: 'assistant', content: chatHistory[i + 1] });
-      }
-    }
-  }
-  
-  // Add the current user message
-  messages.push({ role: 'user', content: userMessage });
-
-  // Make API request with type assertion to avoid type errors
-  const completion = await openai.chat.completions.create({
-    model: "gpt-3.5-turbo",
-    messages: messages as any,
-    max_tokens: 500,
-    temperature: 0.7,
-  });
-
-  // Extract and return the generated response
-  if (completion.choices && completion.choices.length > 0) {
-    response = completion.choices[0].message.content || response;
-  }
-
-  return response;
 }
 
 /**
@@ -296,89 +237,74 @@ export function generateLocalFinanceResponse(userMessage: string): string {
   
   // Budget-related questions
   if (message.includes("budget") || message.includes("spending") || message.includes("expenses") || message.includes("track")) {
-    return "Creating a solid budget is the foundation of financial success! Here's how to get started:\n\n1. Track all income and expenses for at least a month\n2. Categorize your spending (housing, food, transportation, etc.)\n3. Follow the 50/30/20 rule: allocate 50% for needs, 30% for wants, and 20% for savings and debt repayment\n4. Use budgeting apps or spreadsheets to automate tracking\n5. Review and adjust your budget monthly\n\nThe key to successful budgeting is consistency and regular reviews. What specific aspect of budgeting are you struggling with?";
+    return "Creating a solid budget is the foundation of financial success! Here's how to get started:\n\n1. Track all income and expenses for at least a month\n2. Categorize your spending (housing, food, entertainment, etc.)\n3. Identify areas to reduce expenses\n4. Set savings goals and allocate funds accordingly\n5. Review and adjust your budget regularly to stay on track.";
   }
   
   // Saving-related questions
   if (message.includes("save") || message.includes("saving") || message.includes("emergency fund") || message.includes("emergency")) {
-    return "Building savings is critical for financial security. Here's my advice:\n\n1. Start with an emergency fund covering 3-6 months of essential expenses\n2. Keep your emergency fund in a high-yield savings account for easy access\n3. Set up automatic transfers on payday to make saving effortless\n4. Create specific savings goals with deadlines (vacation, down payment, etc.)\n5. Once your emergency fund is complete, direct savings toward other financial goals\n\nRemember: Even small, consistent contributions add up significantly over time thanks to compound interest.";
+    return "Building savings is critical for financial security. Here's my advice:\n\n1. Start with an emergency fund covering 3-6 months of essential expenses\n2. Keep your emergency fund in a high-yield savings account\n3. Set specific savings goals (e.g., vacation, down payment, education)\n4. Automate savings to make it easier to stick to your goals\n5. Regularly review and adjust your savings plan.";
   }
   
   // Debt-related questions
   if (message.includes("debt") || message.includes("loan") || message.includes("credit card") || message.includes("mortgage") || message.includes("student loan")) {
-    return "Managing debt effectively is crucial for your financial health. Here's a step-by-step approach:\n\n1. List all debts with their interest rates, minimum payments, and balances\n2. Consider these two popular payoff strategies:\n   - Debt Avalanche: Focus on highest-interest debt first (saves the most money)\n   - Debt Snowball: Pay off smallest balances first (provides psychological wins)\n3. Always pay more than the minimum payment when possible\n4. Consider balance transfers or debt consolidation for high-interest debt\n5. Avoid taking on new debt while paying off existing obligations\n\nWhat types of debt are you currently dealing with? I can provide more specific advice based on your situation.";
+    return "Managing debt effectively is crucial for your financial health. Here's a step-by-step approach:\n\n1. List all debts with their interest rates, minimum payments, and balances\n2. Consider debt consolidation if it lowers your interest rates and simplifies payments\n3. Prioritize paying off high-interest debt first (e.g., credit cards)\n4. Make at least the minimum payments on all debts to avoid penalties\n5. Develop a repayment plan and stick to it.";
   }
   
   // Investment-related questions
   if (message.includes("invest") || message.includes("stock") || message.includes("bond") || message.includes("retirement") || message.includes("401k") || message.includes("ira")) {
-    return "Investing is how you build wealth long-term. Here are key principles to get started:\n\n1. Before investing, ensure you have an emergency fund and have addressed high-interest debt\n2. Take advantage of employer-matched retirement accounts like 401(k)s first\n3. Consider tax-advantaged accounts like Roth or Traditional IRAs\n4. For most people, low-cost index funds provide appropriate diversification\n5. Set an asset allocation based on your risk tolerance and time horizon\n6. Invest regularly regardless of market conditions (dollar-cost averaging)\n\nRemember that investing is for long-term goals, typically 5+ years. Short-term needs should be kept in savings accounts.";
+    return "Investing is how you build wealth long-term. Here are key principles to get started:\n\n1. Before investing, ensure you have an emergency fund and have addressed high-interest debt\n2. Take advantage of employer-sponsored retirement plans (e.g., 401(k)) and match contributions if offered\n3. Diversify your investments to spread risk (e.g., stocks, bonds, real estate)\n4. Consider low-cost index funds or ETFs for broad market exposure\n5. Review and adjust your investment strategy as your financial goals and risk tolerance change.";
   }
   
   // Real estate or home buying
   if (message.includes("house") || message.includes("home") || message.includes("mortgage") || message.includes("property") || message.includes("real estate")) {
-    return "Buying a home is one of the biggest financial decisions you'll make. Here's guidance:\n\n1. Save for a down payment of at least 20% to avoid PMI (private mortgage insurance)\n2. Get pre-approved for a mortgage before house hunting\n3. Budget for total housing costs (mortgage, property taxes, insurance, maintenance)\n4. The general rule is that housing shouldn't exceed 28% of your gross income\n5. Consider additional costs like closing costs, moving expenses, and new furniture\n6. Think about how long you plan to stay in the home - buying usually makes sense if you'll stay 5+ years\n\nAre you currently saving for a home or already in the process of buying?";
+    return "Buying a home is one of the biggest financial decisions you'll make. Here's guidance:\n\n1. Save for a down payment of at least 20% to avoid PMI (private mortgage insurance)\n2. Get pre-approved for a mortgage to understand your budget\n3. Research different mortgage options (fixed-rate, adjustable-rate, etc.)\n4. Consider additional costs (closing costs, property taxes, insurance, maintenance)\n5. Work with a reputable real estate agent to find the right property.";
   }
   
   // Credit score questions
   if (message.includes("credit score") || message.includes("credit report") || message.includes("credit history") || message.includes("fico")) {
-    return "Your credit score has a huge impact on your financial options. Here's how to maintain a healthy score:\n\n1. Pay all bills on time - payment history is 35% of your FICO score\n2. Keep credit utilization below 30% of available credit (lower is better)\n3. Don't close old credit accounts - length of credit history matters\n4. Limit applications for new credit to avoid hard inquiries\n5. Regularly check your credit reports for errors at annualcreditreport.com\n\nScore ranges: 300-579 (Poor), 580-669 (Fair), 670-739 (Good), 740-799 (Very Good), 800-850 (Excellent). Most lenders consider 740+ to be excellent.";
+    return "Your credit score has a huge impact on your financial options. Here's how to maintain a healthy score:\n\n1. Pay all bills on time - payment history is 35% of your FICO score\n2. Keep credit card balances low relative to their limits (aim for under 30%)\n3. Avoid opening too many new credit accounts in a short period\n4. Regularly check your credit report for errors and dispute any inaccuracies\n5. Use a mix of credit types responsibly (credit cards, installment loans, etc.).";
   }
   
   // Tax planning
   if (message.includes("tax") || message.includes("taxes") || message.includes("deduction") || message.includes("write-off") || message.includes("irs")) {
-    return "Tax planning can save you significant money. Consider these strategies:\n\n1. Maximize tax-advantaged accounts like 401(k)s, IRAs, and HSAs\n2. Keep track of deductible expenses throughout the year\n3. Consider bunching itemized deductions in certain years\n4. Harvest investment losses to offset gains\n5. Contribute to a 529 plan for education expenses\n\nRemember that tax laws change frequently, so consult with a tax professional for personalized advice based on your specific situation.";
+    return "Tax planning can save you significant money. Consider these strategies:\n\n1. Maximize tax-advantaged accounts like 401(k)s, IRAs, and HSAs\n2. Keep track of deductible expenses throughout the year (e.g., charitable donations, medical expenses)\n3. Take advantage of tax credits (e.g., Earned Income Tax Credit, Child Tax Credit)\n4. Consider the timing of income and expenses to minimize tax liability\n5. Consult a tax professional for personalized advice and to ensure compliance.";
   }
   
   // Retirement planning
   if (message.includes("retire") || message.includes("retirement") || message.includes("401k") || message.includes("ira") || message.includes("pension")) {
-    return "Planning for retirement is essential for long-term financial security. Here's how to prepare:\n\n1. Start saving as early as possible to benefit from compound growth\n2. Aim to save 15% of your income for retirement (including employer matches)\n3. Maximize tax-advantaged accounts in this order:\n   - 401(k) or 403(b) up to employer match\n   - HSA if eligible (triple tax advantage)\n   - Roth IRA or Traditional IRA\n   - Remainder in 401(k) or taxable accounts\n4. Adjust your asset allocation to become more conservative as you approach retirement\n5. Consider working with a fee-only financial advisor for personalized retirement planning\n\nThe 4% rule suggests you can withdraw 4% of your retirement savings annually with minimal risk of running out of money over a 30-year retirement.";
+    return "Planning for retirement is essential for long-term financial security. Here's how to prepare:\n\n1. Start saving as early as possible to benefit from compound growth\n2. Aim to save 15% of your income for retirement\n3. Take advantage of tax-advantaged retirement accounts (401(k), IRA, Roth IRA)\n4. Diversify your retirement investments to manage risk\n5. Regularly review and adjust your retirement plan to stay on track with your goals.";
   }
   
   // Insurance questions
   if (message.includes("insurance") || message.includes("insure") || message.includes("coverage") || message.includes("policy") || message.includes("premium")) {
-    return "Insurance protects your financial future from catastrophic events. Here are key types to consider:\n\n1. Health insurance - Essential for everyone to avoid medical bankruptcy\n2. Auto insurance - Required by law in most places\n3. Home/renters insurance - Protects your dwelling and possessions\n4. Life insurance - Important if others depend on your income\n5. Disability insurance - Replaces income if you can't work\n6. Umbrella policy - Provides additional liability protection\n\nFocus on high-deductible policies that protect against financial disasters, not small expenses you could cover from your emergency fund.";
+    return "Insurance protects your financial future from catastrophic events. Here are key types to consider:\n\n1. Health insurance - Essential for everyone to avoid medical bankruptcy\n2. Auto insurance - Required by law and protects against vehicle-related damages and liability\n3. Homeowners or renters insurance - Protects your property and personal belongings\n4. Life insurance - Provides financial support to your dependents in the event of your passing\n5. Disability insurance - Replaces lost income if you're unable to work due to illness or injury.";
   }
   
   // Financial independence / FIRE
   if (message.includes("financial independence") || message.includes("early retirement") || message.includes("fire movement") || message.includes("financial freedom")) {
-    return "The FIRE (Financial Independence, Retire Early) movement focuses on aggressive saving and investing to achieve financial freedom sooner. Core principles include:\n\n1. Increase your savings rate dramatically (often 50-70% of income)\n2. Reduce expenses by embracing frugality and minimalism\n3. Invest in low-cost index funds for long-term growth\n4. Build passive income streams through investments\n5. Use the 4% rule to determine your FIRE number (25x annual expenses)\n\nThere are different FIRE approaches: Lean FIRE (extreme frugality), Fat FIRE (higher spending level), and Barista FIRE (part-time work with partial financial independence). Which approach interests you most?";
+    return "The FIRE (Financial Independence, Retire Early) movement focuses on aggressive saving and investing to achieve financial freedom sooner. Core principles include:\n\n1. Increase your savings rate by reducing expenses and increasing income\n2. Invest in low-cost, diversified index funds or ETFs\n3. Avoid lifestyle inflation and keep living expenses low\n4. Aim to save and invest 50-70% of your income\n5. Plan for healthcare, housing, and other expenses in early retirement.";
   }
   
   // Student loans
   if (message.includes("student loan") || message.includes("college debt") || message.includes("education loan") || message.includes("student debt")) {
-    return "Managing student loan debt requires a strategic approach:\n\n1. Know your loans - federal vs private, interest rates, terms\n2. Explore repayment options for federal loans (income-driven, extended plans)\n3. Consider refinancing private loans if you can qualify for lower rates\n4. Look into loan forgiveness programs if you work in public service\n5. Make extra payments toward higher-interest loans when possible\n6. Stay informed about policy changes that might affect student loan repayment\n\nFederal loans offer more protections and flexible repayment options than private loans, so consider this carefully before refinancing federal loans.";
+    return "Managing student loan debt requires a strategic approach:\n\n1. Know your loans - federal vs private, interest rates, terms\n2. Explore repayment options for federal loans (income-driven, standard, graduated)\n3. Consider refinancing private loans to lower interest rates\n4. Make extra payments towards principal when possible\n5. Stay informed about potential loan forgiveness programs.";
   }
   
   // Side hustles or additional income
   if (message.includes("side hustle") || message.includes("extra income") || message.includes("passive income") || message.includes("earn more")) {
-    return "Increasing your income can accelerate your financial goals. Consider these options:\n\n1. Freelancing in your professional field\n2. Sharing economy (Uber, Airbnb, etc.)\n3. Online marketplaces for skills (teaching, writing, design)\n4. Creating digital products (courses, ebooks, printables)\n5. Monetizing a hobby or passion project\n\nWhen evaluating side hustles, consider the time commitment, upfront costs, and potential return. The best side hustle aligns with your skills and interests while fitting into your schedule.";
+    return "Increasing your income can accelerate your financial goals. Consider these options:\n\n1. Freelancing in your professional field\n2. Sharing economy (Uber, Airbnb, etc.)\n3. Online marketplaces (Etsy, eBay, Amazon)\n4. Investing in dividend-paying stocks or rental properties\n5. Creating content (blogging, podcasting, YouTube).";
   }
   
   // Personal financial planning
   if (message.includes("plan") || message.includes("goals") || message.includes("financial plan") || message.includes("roadmap")) {
-    return "Creating a personal financial plan is essential for achieving your goals. Here's how to get started:\n\n1. Define your financial goals (short-term, medium-term, and long-term)\n2. Assess your current financial situation (income, expenses, assets, liabilities)\n3. Create a budget that aligns with your goals\n4. Build an emergency fund (3-6 months of expenses)\n5. Pay off high-interest debt\n6. Save for retirement through tax-advantaged accounts\n7. Invest according to your timeline and risk tolerance\n8. Review and adjust your plan regularly\n\nA comprehensive financial plan serves as your roadmap to financial security and should evolve as your life circumstances change.";
+    return "Creating a personal financial plan is essential for achieving your goals. Here's how to get started:\n\n1. Define your financial goals (short-term, medium-term, and long-term)\n2. Assess your current financial situation (income, expenses, assets, liabilities)\n3. Create a budget that aligns with your goals\n4. Develop a savings and investment strategy\n5. Review and adjust your plan regularly to stay on track.";
   }
 
   // Cryptocurrency/blockchain questions
   if (message.includes("crypto") || message.includes("bitcoin") || message.includes("ethereum") || message.includes("blockchain") || message.includes("nft")) {
-    return "Cryptocurrencies are highly volatile investments that should only be considered as a small portion of a well-diversified portfolio. Here's what to know:\n\n1. Only invest money you can afford to lose completely\n2. Consider cryptocurrencies as speculative, high-risk investments\n3. Research thoroughly before investing (tokenomics, use cases, team)\n4. Use reputable exchanges with strong security measures\n5. Consider storage options carefully (hot wallets vs. cold storage)\n6. Be aware of tax implications of crypto transactions\n\nCryptocurrencies are still an emerging asset class with significant regulatory uncertainty. They should typically represent no more than 5% of your investment portfolio, if any.";
+    return "Cryptocurrencies are highly volatile investments that should only be considered as a small portion of a well-diversified portfolio. Here's what to know:\n\n1. Only invest money you can afford to lose\n2. Diversify within the crypto space (e.g., Bitcoin, Ethereum)\n3. Stay informed about regulatory changes and market trends\n4. Use secure wallets and exchanges to protect your assets\n5. Consider the tax implications of crypto transactions.";
   }
 
   // Economic concerns (inflation, recession)
   if (message.includes("inflation") || message.includes("recession") || message.includes("economy") || message.includes("economic")) {
-    return "Economic conditions like inflation and recessions affect your finances in important ways. Here's how to prepare:\n\n1. During inflation:\n   - Focus on increasing your income\n   - Invest in assets that historically outpace inflation (stocks, real estate)\n   - Consider I-bonds or TIPS for inflation-protected savings\n   - Review your budget regularly as prices increase\n\n2. During recessions:\n   - Build a larger emergency fund (6-12 months of expenses)\n   - Secure multiple income streams if possible\n   - Reduce discretionary spending\n   - Avoid taking on new debt\n   - Continue investing regularly (dollar-cost averaging)\n\nRemember that economic cycles are normal. A diversified financial plan should account for both good and challenging economic conditions.";
-  }
-
-  // Children/family financial planning
-  if (message.includes("child") || message.includes("children") || message.includes("kid") || message.includes("college") || message.includes("education fund") || message.includes("529")) {
-    return "Financial planning for children and education requires early preparation. Consider these strategies:\n\n1. Education funding options:\n   - 529 College Savings Plans (tax-advantaged growth for education)\n   - Coverdell Education Savings Accounts (for K-12 and college expenses)\n   - UTMA/UGMA custodial accounts (more flexible but less tax advantages)\n   - Roth IRAs (can be used for education without penalty)\n\n2. When to start: As early as possible, ideally when your child is born\n\n3. How much to save: Target at least 1/3 of expected college costs\n\n4. Beyond education:\n   - Consider life insurance to protect your family\n   - Create or update your will and guardianship arrangements\n   - Teach children about money management from an early age\n\nRemember that while education is important, prioritize your retirement savings first. Your children can borrow for college, but you can't borrow for retirement.";
-  }
-
-  // Career and income growth
-  if (message.includes("career") || message.includes("salary") || message.includes("income") || message.includes("negotiate") || message.includes("raise") || message.includes("promotion")) {
-    return "Growing your income is one of the most powerful ways to improve your finances. Consider these strategies:\n\n1. In your current job:\n   - Document your achievements and value-add metrics\n   - Research market rates for your position and experience level\n   - Prepare for performance reviews with specific accomplishments\n   - Request additional responsibilities that can lead to advancement\n\n2. Career development:\n   - Invest in skills that are in high demand in your industry\n   - Build your professional network both inside and outside your company\n   - Consider certifications or additional education if ROI is positive\n   - Look for lateral moves that open new career paths\n\n3. Negotiation tips:\n   - Focus on your value rather than your needs\n   - Practice your pitch and anticipate objections\n   - Consider the entire compensation package, not just salary\n   - Be willing to walk away if necessary\n\nRemember that job-hopping strategically (every 2-4 years) often results in larger income increases than staying with one employer long-term.";
-  }
-
-  // Generic response for other questions
-  return "Thank you for your question! As your financial assistant, I can provide guidance on budgeting, saving, investing, debt management, retirement planning, and many other personal finance topics. To give you the most helpful advice, could you provide a bit more detail about your specific situation or what you're trying to achieve financially?";
-}
+    return "Economic conditions like inflation and recessions affect
