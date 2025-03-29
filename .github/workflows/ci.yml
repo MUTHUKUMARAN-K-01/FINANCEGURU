@@ -1,51 +1,28 @@
 name: CI/CD Pipeline
 
 on:
- flows/ci.yml`.
-2. Update the `setup-node` push:
+  push:
     branches:
       - main
   pull_request:
-    action to use a compatible version of Node.js.
-
-Here branches:
+    branches:
       - main
-
-jobs:
-  build:
-    runs-on is an example of how you can update the workflow file: ubuntu-latest
-
-    steps:
-      - name: Checkout repository
-:
-
-```yaml
-name: CI/CD Pipeline
-
-on: [push, pull_request        uses: actions/checkout@v2
-
-      -]
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
- name: Setup Node.js
-        uses: actions/setup-node    steps:
-      - uses: actions/checkout@v3
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-      -@v3
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
         with:
-          node-version: '18' name: Set up Node.js
-        uses: actions/setup-node  # Update this line to use Node.js v18
-
-      - name:@v3
-        with:
-          node-version: '18.x Install dependencies
-        run: npm install
-
-      - name'
+          node-version: '18'
 
       - name: Install dependencies
-        run:: Run tests
+        run: npm install
+
+      - name: Run tests
         run: npm test
