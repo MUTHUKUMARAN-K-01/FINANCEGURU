@@ -1,52 +1,51 @@
 name: CI/CD Pipeline
 
 on:
-  push:
+ flows/ci.yml`.
+2. Update the `setup-node` push:
     branches:
       - main
   pull_request:
-    branches:
+    action to use a compatible version of Node.js.
+
+Here branches:
       - main
+
+jobs:
+  build:
+    runs-on is an example of how you can update the workflow file: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+:
+
+```yaml
+name: CI/CD Pipeline
+
+on: [push, pull_request        uses: actions/checkout@v2
+
+      -]
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
+ name: Setup Node.js
+        uses: actions/setup-node    steps:
+      - uses: actions/checkout@v3
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v2
+      -@v3
         with:
-          node-version: '16'
+          node-version: '18' name: Set up Node.js
+        uses: actions/setup-node  # Update this line to use Node.js v18
 
-      - name: Install dependencies
+      - name:@v3
+        with:
+          node-version: '18.x Install dependencies
         run: npm install
 
-      - name: Run tests
+      - name'
+
+      - name: Install dependencies
+        run:: Run tests
         run: npm test
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v2
-        with:
-          node-version: '16'
-
-      - name: Install dependencies
-        run: npm install
-
-      - name: Deploy to Heroku
-        env:
-          HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
-        run: |
-          npm run build
-          npx heroku-cli login -i
-          git push https://git.heroku.com/${{ secrets.HEROKU_APP_NAME }}.git main
